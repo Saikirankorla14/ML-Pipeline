@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional
 import uvicorn
+import os
 
 from app.model import ModelRegistry
 
@@ -20,6 +22,11 @@ app.add_middleware(
 )
 
 registry = ModelRegistry()
+
+# Serve frontend (if frontend/ folder exists next to app/)
+FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.isdir(FRONTEND_DIR):
+    app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
 # ---------- Schemas ----------
@@ -58,7 +65,7 @@ class PredictResponse(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "ok", "docs": "/docs"}
+    return {"status": "ok", "docs": "/docs", "ui": "/ui"}
 
 
 @app.get("/models")

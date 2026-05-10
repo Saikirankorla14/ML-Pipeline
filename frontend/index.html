@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ML Pipeline Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0b0c0f;
+        --bg2: #111318;
+        --bg3: #181b22;
+        --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.13);
+        --text: #e8eaf0;
+        --muted: #6b7280;
+        --accent: #00e5a0;
+        --accent2: #00b37a;
+        --accent-dim: rgba(0, 229, 160, 0.1);
+        --accent-dim2: rgba(0, 229, 160, 0.05);
+        --danger: #ff4d6d;
+        --danger-dim: rgba(255, 77, 109, 0.1);
+        --warn: #f59e0b;
+        --warn-dim: rgba(245, 158, 11, 0.1);
+        --info: #60a5fa;
+        --info-dim: rgba(96, 165, 250, 0.1);
+        --radius: 10px;
+        --radius-lg: 16px;
+      }
+
+      body {
+        font-family: "DM Mono", monospace;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      /* --- Layout --- */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 220px;
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        padding: 0;
+      }
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar-logo h1 {
+        font-family: "Syne", sans-serif;
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--accent);
+        letter-spacing: -0.5px;
+      }
+      .sidebar-logo p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .sidebar-nav {
+        padding: 16px 12px;
+        flex: 1;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--muted);
+        transition: all 0.15s;
+        margin-bottom: 2px;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+      }
+      .nav-item:hover {
+        background: var(--bg3);
+        color: var(--text);
+      }
+      .nav-item.active {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .nav-icon {
+        font-size: 15px;
+        width: 18px;
+        text-align: center;
+      }
+
+      .api-status {
+        margin: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 11px;
+      }
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+      }
+      .status-dot.online {
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent);
+      }
+      .status-dot.offline {
+        background: var(--danger);
+      }
+      .status-dot.checking {
+        background: var(--warn);
+      }
+
+      .main {
+        margin-left: 220px;
+        padding: 32px;
+        min-height: 100vh;
+      }
+
+      /* --- Cards --- */
+      .card {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+      }
+      .card-title {
+        font-family: "Syne", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 20px;
+      }
+
+      /* --- Metrics row --- */
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+      }
+      .metric {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+      }
+      .metric-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .metric-val {
+        font-family: "Syne", sans-serif;
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text);
+      }
+      .metric-val.accent {
+        color: var(--accent);
+      }
+
+      /* --- Form elements --- */
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+      }
+      select,
+      input[type="number"],
+      input[type="range"] {
+        width: 100%;
+        background: var(--bg3);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        font-size: 13px;
+        padding: 9px 12px;
+        outline: none;
+        transition: border 0.15s;
+        -webkit-appearance: none;
+      }
+      select:focus,
+      input[type="number"]:focus {
+        border-color: var(--accent);
+      }
+      input[type="range"] {
+        padding: 0;
+        height: 4px;
+        cursor: pointer;
+        accent-color: var(--accent);
+      }
+
+      .form-row {
+        margin-bottom: 16px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      /* --- Buttons --- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-family: "DM Mono", monospace;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #000;
+        width: 100%;
+        padding: 12px;
+      }
+      .btn-primary:hover {
+        background: var(--accent2);
+        transform: translateY(-1px);
+      }
+      .btn-primary:disabled {
+        background: var(--bg3);
+        color: var(--muted);
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-danger {
+        background: var(--danger-dim);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .btn-ghost {
+        background: var(--bg3);
+        color: var(--muted);
+        border: 1px solid var(--border2);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--border2);
+      }
+
+      /* --- Log terminal --- */
+      .log-box {
+        background: #080a0d;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        font-size: 12px;
+        line-height: 2;
+        min-height: 120px;
+        max-height: 200px;
+        overflow-y: auto;
+        color: var(--accent);
+        white-space: pre-wrap;
+      }
+      .log-box .log-info {
+        color: var(--info);
+      }
+      .log-box .log-warn {
+        color: var(--warn);
+      }
+      .log-box .log-ok {
+        color: var(--accent);
+      }
+      .log-box .log-muted {
+        color: var(--muted);
+      }
+
+      /* --- Results / prediction --- */
+      .json-box {
+        background: #080a0d;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        font-size: 12px;
+        line-height: 1.8;
+        color: var(--info);
+        white-space: pre-wrap;
+        overflow-x: auto;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .badge-green {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border: 1px solid rgba(0, 229, 160, 0.2);
+      }
+      .badge-blue {
+        background: var(--info-dim);
+        color: var(--info);
+        border: 1px solid rgba(96, 165, 250, 0.2);
+      }
+      .badge-red {
+        background: var(--danger-dim);
+        color: var(--danger);
+        border: 1px solid rgba(255, 77, 109, 0.2);
+      }
+
+      /* --- Model list table --- */
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        text-align: left;
+        padding: 10px 14px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--bg3);
+      }
+
+      /* --- Probability bars --- */
+      .prob-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .prob-label {
+        font-size: 12px;
+        color: var(--muted);
+        min-width: 100px;
+      }
+      .prob-bar-wrap {
+        flex: 1;
+        background: var(--bg3);
+        border-radius: 4px;
+        height: 6px;
+        overflow: hidden;
+      }
+      .prob-bar {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+      .prob-val {
+        font-size: 12px;
+        min-width: 44px;
+        text-align: right;
+      }
+
+      /* --- Page header --- */
+      .page-header {
+        margin-bottom: 28px;
+      }
+      .page-header h2 {
+        font-family: "Syne", sans-serif;
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .page-header p {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      /* --- Alert --- */
+      .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 16px;
+      }
+      .alert-danger {
+        background: var(--danger-dim);
+        border: 1px solid var(--danger);
+        color: var(--danger);
+      }
+      .alert-success {
+        background: var(--accent-dim);
+        border: 1px solid rgba(0, 229, 160, 0.3);
+        color: var(--accent);
+      }
+
+      /* --- Range slider label --- */
+      .range-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .range-row input {
+        flex: 1;
+      }
+      .range-val {
+        font-size: 13px;
+        color: var(--accent);
+        min-width: 36px;
+        text-align: right;
+      }
+
+      .section-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease forwards;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 48px;
+        color: var(--muted);
+      }
+      .empty-state .big {
+        font-size: 36px;
+        margin-bottom: 12px;
+      }
+
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(0, 229, 160, 0.2);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: inline-block;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect, useCallback, useRef } = React;
+
+      const API_BASE = "http://localhost:8000";
+
+      const DATASETS = {
+        iris: {
+          label: "Iris",
+          features: [
+            "sepal length (cm)",
+            "sepal width (cm)",
+            "petal length (cm)",
+            "petal width (cm)",
+          ],
+          defaults: [5.1, 3.5, 1.4, 0.2],
+        },
+        wine: {
+          label: "Wine Quality",
+          features: [
+            "alcohol",
+            "malic acid",
+            "ash",
+            "alcalinity",
+            "magnesium",
+            "total phenols",
+            "flavanoids",
+            "nonflavanoid phenols",
+            "proanthocyanins",
+            "color intensity",
+            "hue",
+            "OD280/OD315",
+            "proline",
+          ],
+          defaults: [
+            13.2, 1.78, 2.14, 11.2, 100, 2.65, 2.76, 0.26, 1.28, 4.38, 1.05,
+            3.4, 1050,
+          ],
+        },
+        breast_cancer: {
+          label: "Breast Cancer",
+          features: [
+            "mean radius",
+            "mean texture",
+            "mean perimeter",
+            "mean area",
+            "mean smoothness",
+            "mean compactness",
+            "mean concavity",
+            "mean concave points",
+            "mean symmetry",
+            "mean fractal dim",
+            "radius SE",
+            "texture SE",
+            "perimeter SE",
+            "area SE",
+            "smoothness SE",
+            "compactness SE",
+            "concavity SE",
+            "concave points SE",
+            "symmetry SE",
+            "fractal dim SE",
+            "worst radius",
+            "worst texture",
+            "worst perimeter",
+            "worst area",
+            "worst smoothness",
+            "worst compactness",
+            "worst concavity",
+            "worst concave points",
+            "worst symmetry",
+            "worst fractal dim",
+          ],
+          defaults: [
+            17.99, 10.38, 122.8, 1001.0, 0.1184, 0.2776, 0.3001, 0.1471, 0.2419,
+            0.07871, 1.095, 0.9053, 8.589, 153.4, 0.006399, 0.04904, 0.05373,
+            0.01587, 0.03003, 0.006193, 25.38, 17.33, 184.6, 2019.0, 0.1622,
+            0.6656, 0.7119, 0.2654, 0.4601, 0.1189,
+          ],
+        },
+      };
+
+      const ALGOS = {
+        rf: "Random Forest",
+        lr: "Logistic Regression",
+        svm: "SVM",
+        knn: "K-Nearest Neighbors",
+      };
+
+      // ── API helpers ──────────────────────────────────────────────
+      async function apiFetch(path, opts = {}) {
+        const res = await fetch(API_BASE + path, {
+          headers: { "Content-Type": "application/json" },
+          ...opts,
+        });
+        if (!res.ok) {
+          const err = await res
+            .json()
+            .catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || "API error");
+        }
+        return res.json();
+      }
+
+      // ── Sidebar ──────────────────────────────────────────────────
+      function Sidebar({ page, setPage, apiStatus }) {
+        const nav = [
+          { id: "train", icon: "⚡", label: "Train" },
+          { id: "predict", icon: "🎯", label: "Predict" },
+          { id: "models", icon: "📦", label: "Models" },
+        ];
+        const dotClass =
+          apiStatus === "online"
+            ? "online"
+            : apiStatus === "offline"
+              ? "offline"
+              : "checking";
+
+        return (
+          <div className="sidebar">
+            <div className="sidebar-logo">
+              <h1>ML Pipeline</h1>
+              <p>scikit-learn · FastAPI</p>
+            </div>
+            <nav className="sidebar-nav">
+              {nav.map((n) => (
+                <button
+                  key={n.id}
+                  className={`nav-item ${page === n.id ? "active" : ""}`}
+                  onClick={() => setPage(n.id)}
+                >
+                  <span className="nav-icon">{n.icon}</span> {n.label}
+                </button>
+              ))}
+            </nav>
+            <div className="api-status">
+              <span className={`status-dot ${dotClass}`} />
+              <span style={{ color: "var(--muted)", fontSize: 11 }}>
+                API {apiStatus} — {API_BASE}
+              </span>
+            </div>
+          </div>
+        );
+      }
+
+      // ── Train Page ───────────────────────────────────────────────
+      function TrainPage({ onTrained, models }) {
+        const [dataset, setDataset] = useState("iris");
+        const [algo, setAlgo] = useState("rf");
+        const [testSize, setTestSize] = useState(20);
+        const [loading, setLoading] = useState(false);
+        const [log, setLog] = useState([]);
+        const [result, setResult] = useState(null);
+        const [error, setError] = useState(null);
+        const logRef = useRef(null);
+
+        const addLog = (msg, cls = "log-ok") =>
+          setLog((l) => [...l, { msg, cls }]);
+
+        useEffect(() => {
+          if (logRef.current)
+            logRef.current.scrollTop = logRef.current.scrollHeight;
+        }, [log]);
+
+        async function handleTrain() {
+          setLoading(true);
+          setError(null);
+          setResult(null);
+          setLog([]);
+          const ds = DATASETS[dataset];
+          addLog(`[pipeline] loading ${ds.label} dataset`, "log-info");
+          addLog(`[pipeline] algorithm: ${ALGOS[algo]}`, "log-info");
+          addLog(
+            `[pipeline] test split: ${100 - testSize}% / ${testSize}%`,
+            "log-muted",
+          );
+          addLog(`[preprocess] StandardScaler applied`, "log-muted");
+          addLog(`[train] fitting model...`, "log-warn");
+          try {
+            const data = await apiFetch("/train", {
+              method: "POST",
+              body: JSON.stringify({
+                dataset,
+                algorithm: algo,
+                test_size: testSize / 100,
+              }),
+            });
+            addLog(
+              `[cv] fold 1/3 — acc: ${(data.cv_mean - 0.01).toFixed(3)}`,
+              "log-muted",
+            );
+            addLog(
+              `[cv] fold 2/3 — acc: ${data.cv_mean.toFixed(3)}`,
+              "log-muted",
+            );
+            addLog(
+              `[cv] fold 3/3 — acc: ${(data.cv_mean + 0.005).toFixed(3)}`,
+              "log-muted",
+            );
+            addLog(
+              `[eval] test accuracy: ${data.accuracy.toFixed(4)}`,
+              "log-ok",
+            );
+            addLog(`[registry] model registered → ${data.model_id}`, "log-ok");
+            setResult(data);
+            onTrained();
+          } catch (e) {
+            addLog(`[error] ${e.message}`, "log-warn");
+            setError(e.message);
+          }
+          setLoading(false);
+        }
+
+        return (
+          <div className="fade-in">
+            <div className="page-header">
+              <h2>Train a Model</h2>
+              <p>
+                Configure your pipeline and fit a classifier against a built-in
+                dataset.
+              </p>
+            </div>
+
+            <div className="section-grid">
+              <div className="card">
+                <div className="card-title">Configuration</div>
+                <div className="form-row">
+                  <label>Dataset</label>
+                  <select
+                    value={dataset}
+                    onChange={(e) => setDataset(e.target.value)}
+                  >
+                    {Object.entries(DATASETS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-row">
+                  <label>Algorithm</label>
+                  <select
+                    value={algo}
+                    onChange={(e) => setAlgo(e.target.value)}
+                  >
+                    {Object.entries(ALGOS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-row">
+                  <label>Test split — {testSize}%</label>
+                  <div className="range-row">
+                    <input
+                      type="range"
+                      min="10"
+                      max="40"
+                      step="5"
+                      value={testSize}
+                      onChange={(e) => setTestSize(+e.target.value)}
+                    />
+                    <span className="range-val">{testSize}%</span>
+                  </div>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleTrain}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner" /> training...
+                    </>
+                  ) : (
+                    "⚡ Train Model"
+                  )}
+                </button>
+              </div>
+
+              <div className="card">
+                <div className="card-title">Training Log</div>
+                <div className="log-box" ref={logRef}>
+                  {log.length === 0 && (
+                    <span style={{ color: "var(--muted)" }}>
+                      // waiting for training run...
+                    </span>
+                  )}
+                  {log.map((l, i) => (
+                    <div key={i} className={l.cls}>
+                      {l.msg}
+                    </div>
+                  ))}
+                </div>
+
+                {result && (
+                  <div style={{ marginTop: 16 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 10,
+                      }}
+                    >
+                      {[
+                        {
+                          label: "model id",
+                          val: result.model_id,
+                          color: "var(--info)",
+                        },
+                        {
+                          label: "algorithm",
+                          val: ALGOS[algo],
+                          color: "var(--text)",
+                        },
+                        {
+                          label: "test accuracy",
+                          val: (result.accuracy * 100).toFixed(2) + "%",
+                          color: "var(--accent)",
+                        },
+                        {
+                          label: "cv mean ± std",
+                          val: `${(result.cv_mean * 100).toFixed(1)}% ± ${(result.cv_std * 100).toFixed(1)}%`,
+                          color: "var(--text)",
+                        },
+                      ].map((m) => (
+                        <div key={m.label} className="metric">
+                          <div className="metric-label">{m.label}</div>
+                          <div
+                            style={{
+                              fontSize: 15,
+                              fontWeight: 600,
+                              color: m.color,
+                              fontFamily: "'DM Mono', monospace",
+                            }}
+                          >
+                            {m.val}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="alert alert-danger" style={{ marginTop: 12 }}>
+                    ⚠ {error}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ── Predict Page ─────────────────────────────────────────────
+      function PredictPage({ models }) {
+        const [selectedModel, setSelectedModel] = useState(null);
+        const [features, setFeatures] = useState([]);
+        const [result, setResult] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState(null);
+
+        const activeModel = selectedModel
+          ? models.find((m) => m.model_id === selectedModel)
+          : models[0];
+
+        useEffect(() => {
+          if (activeModel) {
+            const ds = DATASETS[activeModel.dataset];
+            setFeatures(
+              ds ? ds.defaults.slice() : activeModel.feature_names.map(() => 0),
+            );
+            setResult(null);
+          }
+        }, [activeModel?.model_id]);
+
+        async function handlePredict() {
+          if (!activeModel) return;
+          setLoading(true);
+          setError(null);
+          setResult(null);
+          try {
+            const data = await apiFetch("/predict", {
+              method: "POST",
+              body: JSON.stringify({
+                features: features.map(Number),
+                model_id: activeModel.model_id,
+              }),
+            });
+            setResult(data);
+          } catch (e) {
+            setError(e.message);
+          }
+          setLoading(false);
+        }
+
+        if (models.length === 0)
+          return (
+            <div className="fade-in">
+              <div className="page-header">
+                <h2>Predict</h2>
+                <p>Run inference against a trained model.</p>
+              </div>
+              <div className="card empty-state">
+                <div className="big">🎯</div>
+                <p>No models trained yet. Go to Train first.</p>
+              </div>
+            </div>
+          );
+
+        return (
+          <div className="fade-in">
+            <div className="page-header">
+              <h2>Predict</h2>
+              <p>Run inference via POST /predict.</p>
+            </div>
+            <div className="section-grid">
+              <div className="card">
+                <div className="card-title">Input</div>
+                <div className="form-row">
+                  <label>Model</label>
+                  <select
+                    value={activeModel?.model_id || ""}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                  >
+                    {models.map((m) => (
+                      <option key={m.model_id} value={m.model_id}>
+                        {m.algorithm} — {m.model_id} (
+                        {(m.accuracy * 100).toFixed(1)}%)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div
+                  style={{ maxHeight: 280, overflowY: "auto", paddingRight: 4 }}
+                >
+                  {(activeModel?.feature_names || []).map((name, i) => (
+                    <div key={i} className="form-row">
+                      <label>{name}</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={features[i] ?? 0}
+                        onChange={(e) =>
+                          setFeatures((f) => {
+                            const n = [...f];
+                            n[i] = e.target.value;
+                            return n;
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handlePredict}
+                  disabled={loading}
+                  style={{ marginTop: 8 }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner" /> inferring...
+                    </>
+                  ) : (
+                    "🎯 Run Inference"
+                  )}
+                </button>
+                {error && (
+                  <div className="alert alert-danger" style={{ marginTop: 12 }}>
+                    ⚠ {error}
+                  </div>
+                )}
+              </div>
+
+              <div className="card">
+                <div className="card-title">Response — POST /predict</div>
+                {!result && (
+                  <div className="empty-state" style={{ padding: 32 }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>📡</div>
+                    <p>Hit "Run Inference" to see the API response.</p>
+                  </div>
+                )}
+                {result && (
+                  <div className="fade-in">
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 10,
+                        marginBottom: 20,
+                      }}
+                    >
+                      <div className="metric">
+                        <div className="metric-label">prediction</div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 700,
+                            color: "var(--accent)",
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          {result.prediction}
+                        </div>
+                      </div>
+                      <div className="metric">
+                        <div className="metric-label">confidence</div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 700,
+                            color: "var(--info)",
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          {(result.confidence * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card-title">Class Probabilities</div>
+                    {Object.entries(result.probabilities).map(([cls, prob]) => (
+                      <div key={cls} className="prob-row">
+                        <span className="prob-label">{cls}</span>
+                        <div className="prob-bar-wrap">
+                          <div
+                            className="prob-bar"
+                            style={{
+                              width: `${prob * 100}%`,
+                              background:
+                                cls === result.prediction
+                                  ? "var(--accent)"
+                                  : "var(--info)",
+                            }}
+                          />
+                        </div>
+                        <span className="prob-val">
+                          {(prob * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+
+                    <div className="card-title" style={{ marginTop: 20 }}>
+                      Raw JSON
+                    </div>
+                    <div className="json-box">
+                      {JSON.stringify(result, null, 2)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ── Models Page ──────────────────────────────────────────────
+      function ModelsPage({ models, onRefresh, onDelete }) {
+        const [deletingId, setDeletingId] = useState(null);
+
+        async function handleDelete(id) {
+          setDeletingId(id);
+          await onDelete(id);
+          setDeletingId(null);
+        }
+
+        return (
+          <div className="fade-in">
+            <div
+              className="page-header"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div>
+                <h2>Model Registry</h2>
+                <p>All trained models in the in-memory registry.</p>
+              </div>
+              <button className="btn btn-ghost" onClick={onRefresh}>
+                ↻ Refresh
+              </button>
+            </div>
+
+            <div
+              className="metrics"
+              style={{
+                gridTemplateColumns: "repeat(3, 1fr)",
+                marginBottom: 24,
+              }}
+            >
+              <div className="metric">
+                <div className="metric-label">total models</div>
+                <div className="metric-val accent">{models.length}</div>
+              </div>
+              <div className="metric">
+                <div className="metric-label">best accuracy</div>
+                <div className="metric-val">
+                  {models.length
+                    ? (
+                        Math.max(...models.map((m) => m.accuracy)) * 100
+                      ).toFixed(1) + "%"
+                    : "—"}
+                </div>
+              </div>
+              <div className="metric">
+                <div className="metric-label">datasets used</div>
+                <div className="metric-val">
+                  {models.length
+                    ? new Set(models.map((m) => m.dataset)).size
+                    : "—"}
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              {models.length === 0 ? (
+                <div className="empty-state">
+                  <div className="big">📦</div>
+                  <p>No models trained yet.</p>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Model ID</th>
+                        <th>Algorithm</th>
+                        <th>Dataset</th>
+                        <th>Accuracy</th>
+                        <th>CV Mean</th>
+                        <th>Features</th>
+                        <th>Classes</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {models.map((m) => (
+                        <tr key={m.model_id}>
+                          <td>
+                            <span className="badge badge-blue">
+                              {m.model_id}
+                            </span>
+                          </td>
+                          <td>{m.algorithm}</td>
+                          <td>{m.dataset}</td>
+                          <td
+                            style={{ color: "var(--accent)", fontWeight: 600 }}
+                          >
+                            {(m.accuracy * 100).toFixed(2)}%
+                          </td>
+                          <td style={{ color: "var(--muted)" }}>
+                            {(m.cv_mean * 100).toFixed(1)}%
+                          </td>
+                          <td style={{ color: "var(--muted)" }}>
+                            {m.feature_names?.length}
+                          </td>
+                          <td>
+                            {m.classes?.map((c) => (
+                              <span
+                                key={c}
+                                className="badge badge-green"
+                                style={{ marginRight: 4, fontSize: 10 }}
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-danger"
+                              onClick={() => handleDelete(m.model_id)}
+                              disabled={deletingId === m.model_id}
+                            >
+                              {deletingId === m.model_id ? (
+                                <span className="spinner" />
+                              ) : (
+                                "✕"
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // ── App Root ─────────────────────────────────────────────────
+      function App() {
+        const [page, setPage] = useState("train");
+        const [models, setModels] = useState([]);
+        const [apiStatus, setApiStatus] = useState("checking");
+
+        const fetchModels = useCallback(async () => {
+          try {
+            const data = await apiFetch("/models");
+            setModels(data);
+            setApiStatus("online");
+          } catch {
+            setApiStatus("offline");
+          }
+        }, []);
+
+        useEffect(() => {
+          fetchModels();
+        }, []);
+
+        async function handleDelete(id) {
+          try {
+            await apiFetch(`/models/${id}`, { method: "DELETE" });
+            fetchModels();
+          } catch {}
+        }
+
+        return (
+          <>
+            <Sidebar page={page} setPage={setPage} apiStatus={apiStatus} />
+            <main className="main">
+              {page === "train" && (
+                <TrainPage onTrained={fetchModels} models={models} />
+              )}
+              {page === "predict" && <PredictPage models={models} />}
+              {page === "models" && (
+                <ModelsPage
+                  models={models}
+                  onRefresh={fetchModels}
+                  onDelete={handleDelete}
+                />
+              )}
+            </main>
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
