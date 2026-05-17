@@ -1,7 +1,7 @@
 # ML Pipeline API
 <img width="1912" height="966" alt="image" src="https://github.com/user-attachments/assets/4a8896c7-8a2f-4815-a072-b9ee26ec3059" />
 
-A production-ready REST API for training and serving scikit-learn classification models, built with FastAPI.
+A production-ready REST API for training and serving scikit-learn classification models, built with FastApi.
 
 ## Project structure
 
